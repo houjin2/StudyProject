@@ -8,9 +8,33 @@ public class StudyProject : ModuleRules
 	{
 		PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
 	
-		PublicDependencyModuleNames.AddRange(new string[] { "Core", "CoreUObject", "Engine", "InputCore" });
+		PublicDependencyModuleNames.AddRange(new string[] 
+		{
+			//Init
+			"Core", "CoreUObject", "Engine", "InputCore" ,
 
-		PrivateDependencyModuleNames.AddRange(new string[] {  });
+			//Json Modules
+			"Json", "JsonUtilities",
+
+			//Enhanced Input
+			"EnhancedInput",
+
+			// AI
+            "NavigationSystem",
+			"AIModule",
+            "GameplayTasks", //BT
+
+			//UI
+			"UMG",
+
+
+        });
+
+		PrivateDependencyModuleNames.AddRange(new string[] 
+		{
+			// Custom Modules
+			"StudyProjectSettings",
+		});
 
 		// Uncomment if you are using Slate UI
 		// PrivateDependencyModuleNames.AddRange(new string[] { "Slate", "SlateCore" });

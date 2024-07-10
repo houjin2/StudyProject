@@ -11,5 +11,6 @@ public class StudyProjectEditorTarget : TargetRules
 		DefaultBuildSettings = BuildSettingsVersion.V2;
 		IncludeOrderVersion = EngineIncludeOrderVersion.Unreal5_1;
 		ExtraModuleNames.Add("StudyProject");
-	}
+        ExtraModuleNames.Add("StudyProjectSettings");
+    }
 }

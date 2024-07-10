@@ -5,9 +5,24 @@
 	"Description": "",
 	"Modules": [
 		{
+			"Name": "StudyProjectSettings",
+			"Type": "Runtime",
+			"LoadingPhase": "PreDefault",
+			"AdditionalDependencies": [
+				"Engine"
+			]
+		},
+		{
 			"Name": "StudyProject",
 			"Type": "Runtime",
-			"LoadingPhase": "Default"
+			"LoadingPhase": "Default",
+			"AdditionalDependencies": [
+				"Engine",
+				"CoreUObject",
+				"AIModule",
+				"UMG",
+				"StudyProjectSettings"
+			]
 		}
 	],
 	"Plugins": [
@@ -17,6 +32,10 @@
 			"TargetAllowList": [
 				"Editor"
 			]
+		},
+		{
+			"Name": "EnhancedInput",
+			"Enabled": true
 		}
 	]
 }
