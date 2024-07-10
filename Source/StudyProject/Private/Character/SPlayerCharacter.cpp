@@ -335,6 +335,8 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Started, this, &ThisClass::StartFire);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Completed, this, &ThisClass::StopFire);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LandMine, ETriggerEvent::Started, this, &ThisClass::SpawnLandMine);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LookSpeedUp, ETriggerEvent::Started, this, &ThisClass::InputLookSpeedUp);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LookSpeedDown, ETriggerEvent::Started, this, &ThisClass::InputLookSpeedDown);
 
 	}
 }
@@ -410,8 +412,8 @@ void ASPlayerCharacter::InputLook(const FInputActionValue& InValue)
 		break;
 	case EViewMode::QuarterView:
 	case EViewMode::TPSView:
-		AddControllerYawInput(LookVector.X);
-		AddControllerPitchInput(LookVector.Y);
+		AddControllerYawInput(LookVector.X * LookSpeed);
+		AddControllerPitchInput(LookVector.Y * LookSpeed);
 		break;
 	case EViewMode::None:
 	case EViewMode::End:
@@ -546,6 +548,22 @@ void ASPlayerCharacter::InputMenu(const FInputActionValue& InValue)
 	if (IsValid(PlayerController) == true)
 	{
 		PlayerController->ToggleInGameMenu();
+	}
+}
+
+void ASPlayerCharacter::InputLookSpeedUp(const FInputActionValue& InValue)
+{
+	if (LookSpeed < 2) 
+	{
+		LookSpeed = LookSpeed + 0.1f;
+	}
+}
+
+void ASPlayerCharacter::InputLookSpeedDown(const FInputActionValue& InValue)
+{
+	if (LookSpeed > KINDA_SMALL_NUMBER)
+	{
+		LookSpeed = LookSpeed - 0.1f;
 	}
 }
 

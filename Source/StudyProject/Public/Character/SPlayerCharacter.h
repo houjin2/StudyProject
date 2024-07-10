@@ -84,6 +84,11 @@ private:
 
 	void InputMenu(const FInputActionValue& InValue);
 
+	void InputLookSpeedUp(const FInputActionValue& InValue);	//마우스 감도 조절
+
+	void InputLookSpeedDown(const FInputActionValue& InValue);	//마우스 감도 조절
+
+
 	//사격구현
 	void TryFire();
 
@@ -238,4 +243,6 @@ protected:
 
 	UPROPERTY()
 	TObjectPtr<UAnimMontage> UnequipAnimMontage;
+
+	float LookSpeed = 1.f;
 };
