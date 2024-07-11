@@ -236,6 +236,7 @@ void ASPlayerCharacter::Tick(float DeltaSeconds)
 			bIsNowRagdollBlending = false;
 		}
 	}
+	
 
 	return;
 }
@@ -884,6 +885,6 @@ void ASPlayerCharacter::PlayRagdoll_NetMulticast_Implementation()
 		TargetRagdollBlendWeight = 1.f;
 
 		HittedRagdollRestoreTimerDelegate.BindUObject(this, &ThisClass::OnHittedRagdollRestoreTimerElapsed);
-		GetWorld()->GetTimerManager().SetTimer(HittedRagdollRestoreTimer, HittedRagdollRestoreTimerDelegate, 1.f, false);
+		GetWorld()->GetTimerManager().SetTimer(HittedRagdollRestoreTimer, HittedRagdollRestoreTimerDelegate, 0.1f, false);
 	}
 }
