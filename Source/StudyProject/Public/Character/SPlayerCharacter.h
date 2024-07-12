@@ -36,6 +36,7 @@ class STUDYPROJECT_API ASPlayerCharacter : public ASCharacter
 {
 	GENERATED_BODY()
 	
+	friend class UAN_CheckReloadEnd;
 public:
 	ASPlayerCharacter();
 
@@ -61,6 +62,10 @@ public:
 
 	float GetCurrentAimYaw() const { return CurrentAimYaw; }
 	
+	float GetCurrentAmmo() const { return CurrentAmmo; }
+
+	float GetMagazine() const { return Magazine; }
+
 	//피격 로직
 	virtual float TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser) override;
 
@@ -68,6 +73,9 @@ public:
 
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
+
+	UFUNCTION()
+	void OnCheckReloadEnd();
 
 private:
 	void InputMove(const FInputActionValue& InValue);
@@ -88,9 +96,13 @@ private:
 
 	void InputLookSpeedDown(const FInputActionValue& InValue);	//마우스 감도 조절
 
+	void InputReload(const FInputActionValue& InValue);
+
 
 	//사격구현
 	void TryFire();
+
+	void Reload();
 
 	void StartIronSight(const FInputActionValue& InValue);
 
@@ -144,6 +156,13 @@ private:
 	//피격 모션 동기화
 	UFUNCTION(NetMulticast, Unreliable)
 	void PlayRagdoll_NetMulticast();
+
+	//장전 모션 동기화
+	UFUNCTION(Server, Unreliable)
+	void PlayReloadMontage_Server();
+
+	UFUNCTION(NetMulticast, Unreliable)
+	void PlayReloadMontage_NetMulticast();
 	
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowprivateAccess))
@@ -245,4 +264,13 @@ protected:
 	TObjectPtr<UAnimMontage> UnequipAnimMontage;
 
 	float LookSpeed = 1.f;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
+	int32 CurrentAmmo;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
+	int32 Magazine;
+
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
+	bool IsReloading;
 };

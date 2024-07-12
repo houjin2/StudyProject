@@ -50,6 +50,10 @@ ASPlayerCharacter::ASPlayerCharacter()
 	}
 
 	TimeBetweenFire = 60.f / FirePerMinute;
+
+	IsReloading = false;
+	Magazine = 30;
+	CurrentAmmo = Magazine;
 }
 
 void ASPlayerCharacter::BeginPlay()
@@ -64,6 +68,12 @@ void ASPlayerCharacter::BeginPlay()
 		{
 			Subsystem->AddMappingContext(PlayerCharacterInputMappingContext, 0);
 		}
+	}
+
+	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+	if (true == ::IsValid(AnimInstance))
+	{
+		AnimInstance->OnCheckReloadEnd.AddDynamic(this, &ThisClass::OnCheckReloadEnd);
 	}
 
 	/*
@@ -338,7 +348,21 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LandMine, ETriggerEvent::Started, this, &ThisClass::SpawnLandMine);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LookSpeedUp, ETriggerEvent::Started, this, &ThisClass::InputLookSpeedUp);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LookSpeedDown, ETriggerEvent::Started, this, &ThisClass::InputLookSpeedDown);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Reload, ETriggerEvent::Started, this, &ThisClass::InputReload);
 
+	}
+}
+
+void ASPlayerCharacter::OnCheckReloadEnd()
+{
+	CurrentAmmo = Magazine;
+	IsReloading = false;
+
+	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+
+	if (true == AnimInstance->OnCheckHit.IsAlreadyBound(this, &ThisClass::OnCheckReloadEnd))
+	{
+		AnimInstance->OnCheckHit.RemoveDynamic(this, &ThisClass::OnCheckReloadEnd);
 	}
 }
 
@@ -568,131 +592,166 @@ void ASPlayerCharacter::InputLookSpeedDown(const FInputActionValue& InValue)
 	}
 }
 
+void ASPlayerCharacter::InputReload(const FInputActionValue& InValue)
+{
+	if (IsReloading == false)
+	{
+		Reload();
+	}
+}
+
 void ASPlayerCharacter::TryFire()
 {
-	APlayerController* PlayerController = GetController<APlayerController>();
-	if (IsValid(PlayerController) == true && IsValid(WeaponInstance) == true)
+	if (CurrentAmmo > 0)
 	{
-#pragma region CalculateTargetTransform
-		float FocalDistance = 400.f;
-		FVector FocalLocation;
-		FVector CameraLocation;
-		FRotator CameraRotation;
-
-		PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
-
-		FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
-		FocalLocation = CameraLocation + (AimDirectionFromCamera * FocalDistance);	//character 위치
-
-		FVector WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("MuzzleFlash"));
-		FVector FinalFocalLocation = FocalLocation + (((WeaponMuzzleLocation - FocalLocation) | AimDirectionFromCamera) * AimDirectionFromCamera);	//Muzzle위치까지 생각한 최종 출발 위치
-
-		FTransform TargetTransform = FTransform(CameraRotation, FinalFocalLocation);
-
-		if (ShowAttackDebug == 1)
+		APlayerController* PlayerController = GetController<APlayerController>();
+		if (IsValid(PlayerController) == true && IsValid(WeaponInstance) == true)
 		{
-			DrawDebugSphere(GetWorld(), WeaponMuzzleLocation, 2.f, 16, FColor::Red, false, 60.f);
+#pragma region CalculateTargetTransform
+			float FocalDistance = 400.f;
+			FVector FocalLocation;
+			FVector CameraLocation;
+			FRotator CameraRotation;
 
-			DrawDebugSphere(GetWorld(), CameraLocation, 2.f, 16, FColor::Yellow, false, 60.f);
+			PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
-			DrawDebugSphere(GetWorld(), FinalFocalLocation, 2.f, 16, FColor::Magenta, false, 60.f);
+			FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
+			FocalLocation = CameraLocation + (AimDirectionFromCamera * FocalDistance);	//character 위치
 
-			// (WeaponLoc - FocalLoc)
-			DrawDebugLine(GetWorld(), FocalLocation, WeaponMuzzleLocation, FColor::Yellow, false, 60.f, 0, 2.f);
+			FVector WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("MuzzleFlash"));
+			FVector FinalFocalLocation = FocalLocation + (((WeaponMuzzleLocation - FocalLocation) | AimDirectionFromCamera) * AimDirectionFromCamera);	//Muzzle위치까지 생각한 최종 출발 위치
 
-			// AimDir
-			DrawDebugLine(GetWorld(), CameraLocation, FinalFocalLocation, FColor::Blue, false, 60.f, 0, 2.f);
+			FTransform TargetTransform = FTransform(CameraRotation, FinalFocalLocation);
 
-			// Project Direction Line
-			DrawDebugLine(GetWorld(), WeaponMuzzleLocation, FinalFocalLocation, FColor::Red, false, 60.f, 0, 2.f);
-		}
+			if (ShowAttackDebug == 1)
+			{
+				DrawDebugSphere(GetWorld(), WeaponMuzzleLocation, 2.f, 16, FColor::Red, false, 60.f);
+
+				DrawDebugSphere(GetWorld(), CameraLocation, 2.f, 16, FColor::Yellow, false, 60.f);
+
+				DrawDebugSphere(GetWorld(), FinalFocalLocation, 2.f, 16, FColor::Magenta, false, 60.f);
+
+				// (WeaponLoc - FocalLoc)
+				DrawDebugLine(GetWorld(), FocalLocation, WeaponMuzzleLocation, FColor::Yellow, false, 60.f, 0, 2.f);
+
+				// AimDir
+				DrawDebugLine(GetWorld(), CameraLocation, FinalFocalLocation, FColor::Blue, false, 60.f, 0, 2.f);
+
+				// Project Direction Line
+				DrawDebugLine(GetWorld(), WeaponMuzzleLocation, FinalFocalLocation, FColor::Red, false, 60.f, 0, 2.f);
+			}
 #pragma endregion
 
 #pragma region PerformLineTracing
 
-		FVector BulletDirection = TargetTransform.GetUnitAxis(EAxis::X);
-		FVector StartLocation = TargetTransform.GetLocation();
-		FVector EndLocation = StartLocation + BulletDirection * WeaponInstance->GetMaxRange();
+			FVector BulletDirection = TargetTransform.GetUnitAxis(EAxis::X);
+			FVector StartLocation = TargetTransform.GetLocation();
+			FVector EndLocation = StartLocation + BulletDirection * WeaponInstance->GetMaxRange();
 
-		FHitResult HitResult;
-		FCollisionQueryParams TraceParams(NAME_None, false, this);
-		TraceParams.AddIgnoredActor(WeaponInstance);
+			FHitResult HitResult;
+			FCollisionQueryParams TraceParams(NAME_None, false, this);
+			TraceParams.AddIgnoredActor(WeaponInstance);
 
-		bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
-		if (IsCollided == true)
-		{
-			HitResult.TraceStart = StartLocation;
-			HitResult.TraceEnd = EndLocation;
-		}
-
-		if (ShowAttackDebug == 2)
-		{
+			bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
 			if (IsCollided == true)
 			{
-				DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
-
-				DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 2.f, 16, FColor::Green, false, 60.f);
-
-				DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Blue, false, 60.f, 0, 2.f);
+				HitResult.TraceStart = StartLocation;
+				HitResult.TraceEnd = EndLocation;
 			}
-			else
+
+			if (ShowAttackDebug == 2)
 			{
-				DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
-
-				DrawDebugSphere(GetWorld(), EndLocation, 2.f, 16, FColor::Green, false, 60.f);
-
-				DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Blue, false, 60.f, 0, 2.f);
-			}
-		}
-#pragma endregion
-
-		/*	1인 플레이시 가능
-		if (IsCollided == true)
-		{
-			ASCharacter* HittedCharacter = Cast<ASCharacter>(HitResult.GetActor());
-			if (IsValid(HittedCharacter) == true)
-			{
-				FDamageEvent DamageEvent;
-				//HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
-
-				FString BoneNameString = HitResult.BoneName.ToString();	//피격 부위 저장
-				//UKismetSystemLibrary::PrintString(this, BoneNameString);
-				//DrawDebugSphere(GetWorld(), HitResult.Location, 3.f, 16, FColor(255, 0, 0, 255), true, 20.f, 0U, 5.f);
-
-				if (BoneNameString.Equals(FString(TEXT("HEAD")), ESearchCase::IgnoreCase) == true)
+				if (IsCollided == true)
 				{
-					HittedCharacter->TakeDamage(100.f, DamageEvent, GetController(), this);
+					DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
+
+					DrawDebugSphere(GetWorld(), HitResult.ImpactPoint, 2.f, 16, FColor::Green, false, 60.f);
+
+					DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Blue, false, 60.f, 0, 2.f);
 				}
 				else
 				{
-					HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
+					DrawDebugSphere(GetWorld(), StartLocation, 2.f, 16, FColor::Red, false, 60.f);
 
+					DrawDebugSphere(GetWorld(), EndLocation, 2.f, 16, FColor::Green, false, 60.f);
+
+					DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Blue, false, 60.f, 0, 2.f);
 				}
 			}
-		}
-		*/
-		ApplyDamageAndDrawLine_Server(HitResult);
+#pragma endregion
 
-		// Owning Client 에서 몽타주 재생
+			/*	1인 플레이시 가능
+			if (IsCollided == true)
+			{
+				ASCharacter* HittedCharacter = Cast<ASCharacter>(HitResult.GetActor());
+				if (IsValid(HittedCharacter) == true)
+				{
+					FDamageEvent DamageEvent;
+					//HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
+
+					FString BoneNameString = HitResult.BoneName.ToString();	//피격 부위 저장
+					//UKismetSystemLibrary::PrintString(this, BoneNameString);
+					//DrawDebugSphere(GetWorld(), HitResult.Location, 3.f, 16, FColor(255, 0, 0, 255), true, 20.f, 0U, 5.f);
+
+					if (BoneNameString.Equals(FString(TEXT("HEAD")), ESearchCase::IgnoreCase) == true)
+					{
+						HittedCharacter->TakeDamage(100.f, DamageEvent, GetController(), this);
+					}
+					else
+					{
+						HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
+
+					}
+				}
+			}
+			*/
+			ApplyDamageAndDrawLine_Server(HitResult);
+
+			// Owning Client 에서 몽타주 재생
+			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+			if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
+			{
+				if (AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleFireAnimMontage()) == false)
+				{
+					AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
+				}
+			}
+
+			// Other Client 에서도 재생하기 위해 Server RPC 호출.
+			PlayAttackMontage_Server();
+
+		}
+
+		if (IsValid(FireShake) == true && GetOwner() == UGameplayStatics::GetPlayerController(this, 0))
+		{
+			PlayerController->ClientStartCameraShake(FireShake);
+		}
+		--CurrentAmmo;
+	}
+	else
+	{
+		Reload();
+	}
+}
+
+void ASPlayerCharacter::Reload()
+{
+
+	if (IsValid(WeaponInstance) == true && CurrentAmmo < Magazine && IsReloading == false)
+	{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
 		{
-			if (AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleFireAnimMontage()) == false)
+			if (AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleReloadAnimMontage()) == false)
 			{
-				AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
+				AnimInstance->Montage_Play(WeaponInstance->GetRifleReloadAnimMontage());
 			}
 		}
-
-		// Other Client 에서도 재생하기 위해 Server RPC 호출.
-		PlayAttackMontage_Server();
-
-	}
-
-	if (IsValid(FireShake) == true && GetOwner() == UGameplayStatics::GetPlayerController(this, 0))
-	{
-		PlayerController->ClientStartCameraShake(FireShake);
+		PlayReloadMontage_Server();
+		IsReloading = true;
 	}
 }
+
 
 void ASPlayerCharacter::StartIronSight(const FInputActionValue& InValue)
 {
@@ -812,7 +871,7 @@ void ASPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult 
 
 		FString BoneNameString = HitResult.BoneName.ToString();
 
-		if (BoneNameString.Equals(FString(TEXT("HAED")), ESearchCase::IgnoreCase) == true)
+		if (BoneNameString.Equals(FString(TEXT("HEAD")), ESearchCase::IgnoreCase) == true)
 		{
 			HittedCharacter->TakeDamage(100.f, DamageEvent, GetController(), this);
 		}
@@ -886,5 +945,25 @@ void ASPlayerCharacter::PlayRagdoll_NetMulticast_Implementation()
 
 		HittedRagdollRestoreTimerDelegate.BindUObject(this, &ThisClass::OnHittedRagdollRestoreTimerElapsed);
 		GetWorld()->GetTimerManager().SetTimer(HittedRagdollRestoreTimer, HittedRagdollRestoreTimerDelegate, 0.1f, false);
+	}
+}
+
+void ASPlayerCharacter::PlayReloadMontage_Server_Implementation()
+{
+	PlayReloadMontage_NetMulticast();
+}
+
+void ASPlayerCharacter::PlayReloadMontage_NetMulticast_Implementation()
+{
+	if (HasAuthority() == false && GetOwner() != UGameplayStatics::GetPlayerController(this, 0))
+	{
+		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
+		{
+			if (AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleReloadAnimMontage()) == false)
+			{
+				AnimInstance->Montage_Play(WeaponInstance->GetRifleReloadAnimMontage());
+;			}
+		}
 	}
 }

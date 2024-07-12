@@ -4,9 +4,9 @@
 #include "Animation/AnimNotify/AN_CheckHit.h"
 #include "Character/SPlayerCharacter.h"
 
-void UAN_CheckHit::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animationm, const FAnimNotifyEventReference& EventReference)
+void UAN_CheckHit::Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference)
 {
-	Super::Notify(MeshComp, Animationm, EventReference);
+	Super::Notify(MeshComp, Animation, EventReference);
 
 	if (IsValid(MeshComp) == true)
 	{

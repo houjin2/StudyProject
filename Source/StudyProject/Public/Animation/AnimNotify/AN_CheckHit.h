@@ -15,6 +15,6 @@ class STUDYPROJECT_API UAN_CheckHit : public UAnimNotify
 	GENERATED_BODY()
 
 private:
-	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animationm, const FAnimNotifyEventReference& EventReference);
+	virtual void Notify(USkeletalMeshComponent* MeshComp, UAnimSequenceBase* Animation, const FAnimNotifyEventReference& EventReference);
 	
 };

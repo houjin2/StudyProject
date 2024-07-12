@@ -33,6 +33,8 @@ public:
 
 	UAnimMontage* GetRifleFireAnimMontage() const { return RifleFireAnimMontage; }
 
+	UAnimMontage* GetRifleReloadAnimMontage() const { return RifleReloadAnimMontage; }
+
 protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowprivateAccess))
 	TObjectPtr<USkeletalMeshComponent> Mesh;
@@ -57,4 +59,7 @@ protected:
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowprivateAccess))
 	TObjectPtr<UAnimMontage> RifleFireAnimMontage;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowprivateAccess))
+	TObjectPtr<UAnimMontage> RifleReloadAnimMontage;
 };

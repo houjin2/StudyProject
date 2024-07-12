@@ -15,6 +15,7 @@
 #include "Controller/SPlayerController.h"	//DeadPlayer count
 #include "Kismet/GameplayStatics.h"
 #include "Game/SGameState.h"
+#include "Character/SPlayerCharacter.h"
 
 int32 ASCharacter::ShowAttackDebug = 0;
 
@@ -181,6 +182,8 @@ void ASCharacter::OnCheckHit()
 	}
 
 }
+
+
 
 void ASCharacter::BeginAttack()
 {

@@ -7,6 +7,7 @@
 #include "Component/SStatComponent.h"
 #include "Components/TextBlock.h"
 #include "Game/SGameInstance.h"
+#include "Character/SPlayerCharacter.h"
 
 void USHUD::BindStatComponent(USStatComponent* InStatComponent)
 {
@@ -39,6 +40,20 @@ void USHUD::BindPlayerState(ASPlayerState* InPlayerState)
 
 		PlayerNameText->SetText(FText::FromString(PlayerState->GetPlayerName()));
 		OnKillCountChanged(0, PlayerState->GetCurrentKillCount());
+	}
+}
+
+void USHUD::BindPlayerCharacter(ASPlayerCharacter* InPlayerCharacter)
+{
+	if (IsValid(InPlayerCharacter) == true)
+	{
+		PlayerCharacter = InPlayerCharacter;
+
+		FString Ammo = FString::Printf(TEXT("%d"), PlayerCharacter->GetCurrentAmmo());
+		CurrentAmmoText->SetText(FText::FromString(Ammo));
+
+		FString Maga = FString::Printf(TEXT("%d"), PlayerCharacter->GetMagazine());
+		MagazineText->SetText(FText::FromString(Maga));
 	}
 }
 

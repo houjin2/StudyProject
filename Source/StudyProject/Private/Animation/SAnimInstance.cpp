@@ -115,3 +115,11 @@ void USAnimInstance::AnimNotify_CheckAttackInput()
 		OnCheckAttackInput.Broadcast();
 	}
 }
+
+void USAnimInstance::AnimNotify_CheckReloadEnd()
+{
+	if (OnCheckReloadEnd.IsBound() == true)
+	{
+		OnCheckReloadEnd.Broadcast();
+	}
+}

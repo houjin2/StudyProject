@@ -40,6 +40,7 @@ protected:
 	UFUNCTION()
 	void OnCheckHit();
 
+
 	virtual void BeginAttack();
 
 	UFUNCTION()

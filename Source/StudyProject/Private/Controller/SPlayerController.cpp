@@ -13,6 +13,7 @@
 #include "Game/SGameMode.h"				//DeadPlayer count
 #include "UI/SGameResultWidget.h"		//Player Rank 
 #include "Components/TextBlock.h"		//Player Rank 
+#include "Character/SPlayerCharacter.h"
 
 ASPlayerController::ASPlayerController()
 {
@@ -155,6 +156,12 @@ void ASPlayerController::BeginPlay()
 				{
 					HUDWidget->BindStatComponent(StatComponent);
 				}
+			}
+
+			ASPlayerCharacter* SPlayerCharacter = GetPawn<ASPlayerCharacter>();
+			if (IsValid(SPlayerCharacter) == true)
+			{
+				HUDWidget->BindPlayerCharacter(SPlayerCharacter);
 			}
 		}
 	}
