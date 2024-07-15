@@ -355,6 +355,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 
 void ASPlayerCharacter::OnCheckReloadEnd()
 {
+
 	CurrentAmmo = Magazine;
 	IsReloading = false;
 
@@ -541,6 +542,10 @@ void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
 		return;
 	}
 
+	if (IsReloading == true)
+	{
+		return;
+	}
 	/*
 	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
 	checkf(IsValid(AnimInstance) == true, TEXT("InValid AnimInstance"));
