@@ -25,9 +25,6 @@ public:
 
 	void BindPlayerState(ASPlayerState* InPlayerState);
 
-	void BindPlayerCharacter(ASPlayerCharacter* InPlayerCharacter);
-
-
 protected:
 	UFUNCTION()
 	void OnKillCountChanged(int32 InOldKillCount, int32 InNewKillCount);
@@ -36,9 +33,6 @@ protected:
 	TWeakObjectPtr<USStatComponent> StatComponent;
 
 	TWeakObjectPtr<ASPlayerState> PlayerState;
-
-	TWeakObjectPtr<ASPlayerCharacter> PlayerCharacter;
-
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<UTextBlock> KillCountText;
@@ -51,9 +45,4 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
 	TObjectPtr<USW_HPBar> HPBar;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> CurrentAmmoText;
-
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (BindWidget))
-	TObjectPtr<UTextBlock> MagazineText;
 };

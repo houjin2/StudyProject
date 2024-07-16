@@ -43,20 +43,6 @@ void USHUD::BindPlayerState(ASPlayerState* InPlayerState)
 	}
 }
 
-void USHUD::BindPlayerCharacter(ASPlayerCharacter* InPlayerCharacter)
-{
-	if (IsValid(InPlayerCharacter) == true)
-	{
-		PlayerCharacter = InPlayerCharacter;
-
-		FString Ammo = FString::Printf(TEXT("%d"), PlayerCharacter->GetCurrentAmmo());
-		CurrentAmmoText->SetText(FText::FromString(Ammo));
-
-		FString Maga = FString::Printf(TEXT("%d"), PlayerCharacter->GetMagazine());
-		MagazineText->SetText(FText::FromString(Maga));
-	}
-}
-
 void USHUD::OnKillCountChanged(int32 InOldKillCount, int32 InNewKillCount)
 {
 	FString KillCountString = FString::Printf(TEXT("%d"), InNewKillCount);

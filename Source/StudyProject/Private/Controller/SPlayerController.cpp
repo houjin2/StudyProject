@@ -158,11 +158,6 @@ void ASPlayerController::BeginPlay()
 				}
 			}
 
-			ASPlayerCharacter* SPlayerCharacter = GetPawn<ASPlayerCharacter>();
-			if (IsValid(SPlayerCharacter) == true)
-			{
-				HUDWidget->BindPlayerCharacter(SPlayerCharacter);
-			}
 		}
 	}
 
