@@ -338,6 +338,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Jump, ETriggerEvent::Started, this, &ACharacter::Jump);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot01, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot01);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot02, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot02);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot03, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot03);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Started, this, &ThisClass::InputAttack);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Menu, ETriggerEvent::Started, this, &ThisClass::InputMenu);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->IronSight, ETriggerEvent::Started, this, &ThisClass::StartIronSight);
@@ -508,30 +509,18 @@ void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
 		}
 	}
 	*/
+	
 	SpawnWeaponInstance_Server();
 }
 
 void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 {
-	/* 1인 플레이일떄 사용가능
-	if (IsValid(WeaponInstance) == true)
-	{
-		TSubclassOf<UAnimInstance> UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
-		if (IsValid(UnarmedCharacterAnimLayer) == true)
-		{
-			GetMesh()->LinkAnimClassLayers(UnarmedCharacterAnimLayer);
-		}
+	SpawnWeaponInstance_Server();
 
-		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetUnequipAnimMontage()))
-		{
-			AnimInstance->Montage_Play(WeaponInstance->GetUnequipAnimMontage());
-		}
+}
 
-		WeaponInstance->Destroy();
-		WeaponInstance = nullptr;
-	}
-	*/
+void ASPlayerCharacter::InputQuickSlot03(const FInputActionValue& InValue)
+{
 	DestroyWeaponInstance_Server();
 }
 
@@ -835,22 +824,48 @@ void ASPlayerCharacter::DestroyWeaponInstance_Server_Implementation()
 
 void ASPlayerCharacter::OnRep_WeaponInstance()
 {
+	FString WeaponName;
 	if (IsValid(WeaponInstance) == true)
 	{
-		TSubclassOf<UAnimInstance> RifleCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
-		if (IsValid(RifleCharacterAnimLayer) == true)
+		WeaponName = WeaponClass->GetName();
+		if (WeaponName == "BP_RifleActor_C") 
 		{
-			GetMesh()->LinkAnimClassLayers(RifleCharacterAnimLayer);
-		}
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnRep_WeaponInstance() : BP_RifleActor_C")));
 
-		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
+			TSubclassOf<UAnimInstance> RifleCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
+			if (IsValid(RifleCharacterAnimLayer) == true)
+			{
+				GetMesh()->LinkAnimClassLayers(RifleCharacterAnimLayer);
+			}
+
+			USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+			if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
+			{
+				AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
+			}
+
+			UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
+			UnequipAnimMontage = WeaponInstance->GetUnequipAnimMontage();
+		}
+		if(WeaponName == "BP_ShotgunActor_C")
 		{
-			AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
-		}
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnRep_WeaponInstance() : BP_ShotgunActor_C")));
+			
+			TSubclassOf<UAnimInstance> ShotgunCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
+			if (IsValid(ShotgunCharacterAnimLayer) == true)
+			{
+				GetMesh()->LinkAnimClassLayers(ShotgunCharacterAnimLayer);
+			}
 
-		UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
-		UnequipAnimMontage = WeaponInstance->GetUnequipAnimMontage();
+			USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+			if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
+			{
+				AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
+			}
+
+			UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
+			UnequipAnimMontage = WeaponInstance->GetUnequipAnimMontage();
+		}
 	}
 	else
 	{

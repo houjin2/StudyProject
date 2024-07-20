@@ -55,6 +55,7 @@ protected:
 	UFUNCTION()
 	virtual void OnRep_WeaponInstance() {}
 
+
 public:
 	static int32 ShowAttackDebug;
 

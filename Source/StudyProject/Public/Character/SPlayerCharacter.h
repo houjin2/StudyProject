@@ -88,6 +88,8 @@ private:
 
 	void InputQuickSlot02(const FInputActionValue& InValue);
 
+	void InputQuickSlot03(const FInputActionValue& InValue);
+
 	void InputAttack(const FInputActionValue& InValue);
 
 	void InputMenu(const FInputActionValue& InValue);
