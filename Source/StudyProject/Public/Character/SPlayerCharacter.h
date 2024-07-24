@@ -127,7 +127,10 @@ private:
 
 	//무기 스폰 동기화
 	UFUNCTION(Server, Reliable)
-	void SpawnWeaponInstance_Server();
+	void SpawnWeaponInstance1_Server();
+
+	UFUNCTION(Server, Reliable)
+	void SpawnWeaponInstance2_Server();
 
 	UFUNCTION(Server, Reliable)
 	void DestroyWeaponInstance_Server();
@@ -265,6 +268,8 @@ protected:
 	UPROPERTY()
 	TObjectPtr<UAnimMontage> UnequipAnimMontage;
 
+
+
 	float LookSpeed = 1.f;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
@@ -275,4 +280,7 @@ protected:
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
 	bool IsReloading;
+
+	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "ASPlayerCharacter")
+	FString CurrentWeapon;
 };

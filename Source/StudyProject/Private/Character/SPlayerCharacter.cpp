@@ -251,7 +251,6 @@ void ASPlayerCharacter::Tick(float DeltaSeconds)
 	return;
 }
 
-
 void ASPlayerCharacter::SetMeshMaterial(const EPlayerTeam& InPlayerTeam)
 {
 	uint8 TeamIdx = 0u;
@@ -282,7 +281,6 @@ void ASPlayerCharacter::SetMeshMaterial(const EPlayerTeam& InPlayerTeam)
 			})
 	);
 }
-
 
 float ASPlayerCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEvent, AController* EventInstigator, AActor* DamageCauser)
 {
@@ -509,14 +507,14 @@ void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
 		}
 	}
 	*/
-	
-	SpawnWeaponInstance_Server();
+	CurrentWeapon = "Rifle";
+	SpawnWeaponInstance1_Server();
 }
 
 void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 {
-	SpawnWeaponInstance_Server();
-
+	CurrentWeapon = "Shotgun";
+	SpawnWeaponInstance2_Server();
 }
 
 void ASPlayerCharacter::InputQuickSlot03(const FInputActionValue& InValue)
@@ -746,7 +744,6 @@ void ASPlayerCharacter::Reload()
 	}
 }
 
-
 void ASPlayerCharacter::StartIronSight(const FInputActionValue& InValue)
 {
 	TargetFOV = 45.f;
@@ -803,15 +800,34 @@ void ASPlayerCharacter::OnHittedRagdollRestoreTimerElapsed()
 	bIsNowRagdollBlending = true;
 }
 
-void ASPlayerCharacter::SpawnWeaponInstance_Server_Implementation()
+void ASPlayerCharacter::SpawnWeaponInstance1_Server_Implementation()
 {
 	FName WeaponSocket(TEXT("WeaponSocket"));
 	if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
 	{
-		WeaponInstance = GetWorld()->SpawnActor<ASWeaponActor>(WeaponClass, FVector::ZeroVector, FRotator::ZeroRotator);
-		if (IsValid(WeaponInstance) == true)
+		if (IsValid(WeaponClass1)) 
 		{
-			WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+			WeaponInstance = GetWorld()->SpawnActor<ASWeaponActor>(WeaponClass1, FVector::ZeroVector, FRotator::ZeroRotator);
+			if (IsValid(WeaponInstance) == true)
+			{
+				WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+			}
+		}
+	}
+} 
+
+void ASPlayerCharacter::SpawnWeaponInstance2_Server_Implementation()
+{
+	FName WeaponSocket(TEXT("WeaponSocket"));
+	if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
+	{
+		if (IsValid(WeaponClass2)) 
+		{
+			WeaponInstance = GetWorld()->SpawnActor<ASWeaponActor>(WeaponClass2, FVector::ZeroVector, FRotator::ZeroRotator);
+			if (IsValid(WeaponInstance) == true)
+			{
+				WeaponInstance->AttachToComponent(GetMesh(), FAttachmentTransformRules::SnapToTargetIncludingScale, WeaponSocket);
+			}
 		}
 	}
 }
@@ -824,48 +840,25 @@ void ASPlayerCharacter::DestroyWeaponInstance_Server_Implementation()
 
 void ASPlayerCharacter::OnRep_WeaponInstance()
 {
-	FString WeaponName;
+
 	if (IsValid(WeaponInstance) == true)
 	{
-		WeaponName = WeaponClass->GetName();
-		if (WeaponName == "BP_RifleActor_C") 
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnRep_WeaponInstance() : BP_RifleActor_C")));
+
+		TSubclassOf<UAnimInstance> RifleCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
+		if (IsValid(RifleCharacterAnimLayer) == true)
 		{
-			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnRep_WeaponInstance() : BP_RifleActor_C")));
-
-			TSubclassOf<UAnimInstance> RifleCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
-			if (IsValid(RifleCharacterAnimLayer) == true)
-			{
-				GetMesh()->LinkAnimClassLayers(RifleCharacterAnimLayer);
-			}
-
-			USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-			if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
-			{
-				AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
-			}
-
-			UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
-			UnequipAnimMontage = WeaponInstance->GetUnequipAnimMontage();
+			GetMesh()->LinkAnimClassLayers(RifleCharacterAnimLayer);
 		}
-		if(WeaponName == "BP_ShotgunActor_C")
+
+		USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
+		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
 		{
-			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("OnRep_WeaponInstance() : BP_ShotgunActor_C")));
-			
-			TSubclassOf<UAnimInstance> ShotgunCharacterAnimLayer = WeaponInstance->GetArmedCharacterAnimLayer();
-			if (IsValid(ShotgunCharacterAnimLayer) == true)
-			{
-				GetMesh()->LinkAnimClassLayers(ShotgunCharacterAnimLayer);
-			}
-
-			USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
-			if (IsValid(AnimInstance) == true && IsValid(WeaponInstance->GetEquipAnimMontage()))
-			{
-				AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
-			}
-
-			UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
-			UnequipAnimMontage = WeaponInstance->GetUnequipAnimMontage();
+			AnimInstance->Montage_Play(WeaponInstance->GetEquipAnimMontage());
 		}
+
+		UnarmedCharacterAnimLayer = WeaponInstance->GetUnarmedCharacterAnimLayer();
+		UnequipAnimMontage = WeaponInstance->GetUnequipAnimMontage();
 	}
 	else
 	{
