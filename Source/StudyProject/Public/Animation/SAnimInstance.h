@@ -8,6 +8,7 @@
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCheckHit);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCheckAttackInput);
 DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCheckReloadEnd);
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnCheckSpawnWeapon);
 
 
 class UAnimMontage;
@@ -63,12 +64,17 @@ protected:
 	UFUNCTION()
 	void AnimNotify_CheckReloadEnd();
 
+	UFUNCTION()
+	void AnimNotify_CheckSpawnWeapon();
+
 public:
 	FOnCheckHit OnCheckHit;
 
 	FOnCheckAttackInput OnCheckAttackInput;
 
 	FOnCheckReloadEnd OnCheckReloadEnd;
+
+	FOnCheckSpawnWeapon OnCheckSpawnWeapon;
 
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "SAnimInstance", meta = (AllowprivateAccess))

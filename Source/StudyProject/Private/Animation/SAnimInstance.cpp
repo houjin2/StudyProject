@@ -123,3 +123,11 @@ void USAnimInstance::AnimNotify_CheckReloadEnd()
 		OnCheckReloadEnd.Broadcast();
 	}
 }
+
+void USAnimInstance::AnimNotify_CheckSpawnWeapon()
+{
+	if (OnCheckSpawnWeapon.IsBound() == true)
+	{
+		OnCheckSpawnWeapon.Broadcast();
+	}
+}

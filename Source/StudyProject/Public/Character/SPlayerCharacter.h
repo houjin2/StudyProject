@@ -37,6 +37,9 @@ class STUDYPROJECT_API ASPlayerCharacter : public ASCharacter
 	GENERATED_BODY()
 	
 	friend class UAN_CheckReloadEnd;
+	
+	friend class UAN_CheckSpawnWeapon;
+
 public:
 	ASPlayerCharacter();
 
@@ -71,11 +74,17 @@ public:
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 
+	UFUNCTION(Server, Reliable)
+	void SetCurrentWeapon_Server(const FString& NewWeapon);
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
 	UFUNCTION()
 	void OnCheckReloadEnd();
+
+	UFUNCTION()
+	void OnCheckSpawnWeapon();
 
 private:
 	void InputMove(const FInputActionValue& InValue);
@@ -272,6 +281,14 @@ protected:
 
 	float LookSpeed = 1.f;
 
+	int32 RifleAmmo = 30;
+
+	int32 RifleMagazine = 30;
+
+	int32 ShotgunAmmo = 8;
+
+	int32 ShotgunMagazine = 8;
+
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
 	int32 CurrentAmmo;
 
@@ -281,6 +298,6 @@ protected:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
 	bool IsReloading;
 
-	UPROPERTY(EditAnyWhere, BlueprintReadWrite, Category = "ASPlayerCharacter")
+	UPROPERTY(Replicated)
 	FString CurrentWeapon;
 };
