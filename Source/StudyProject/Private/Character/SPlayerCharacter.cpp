@@ -355,6 +355,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LookSpeedUp, ETriggerEvent::Started, this, &ThisClass::InputLookSpeedUp);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LookSpeedDown, ETriggerEvent::Started, this, &ThisClass::InputLookSpeedDown);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Reload, ETriggerEvent::Started, this, &ThisClass::InputReload);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Pickup, ETriggerEvent::Started, this, &ThisClass::InputPickup);
 
 	}
 }
@@ -577,7 +578,10 @@ void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 
 void ASPlayerCharacter::InputQuickSlot03(const FInputActionValue& InValue)
 {
-	DestroyWeaponInstance_Server();
+	if (IsValid(WeaponInstance) == true)
+	{
+		DestroyWeaponInstance_Server();
+	}
 }
 
 void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
@@ -648,6 +652,11 @@ void ASPlayerCharacter::InputReload(const FInputActionValue& InValue)
 	{
 		Reload();
 	}
+}
+
+void ASPlayerCharacter::InputPickup(const FInputActionValue& InValue)
+{
+	FindOverlappingItems();
 }
 
 void ASPlayerCharacter::TryFire()
@@ -1139,4 +1148,24 @@ void ASPlayerCharacter::PlayReloadMontage_NetMulticast_Implementation()
 ;			}
 		}
 	}
+}
+
+void ASPlayerCharacter::FindOverlappingItems()
+{
+	//TArray<AActor*> OverlappingActors;
+	//GetOverlappingActors(OverlappingActors, TSubclassOf<AActor>());
+	//
+	//for (AActor* Actor : OverlappingActors)
+	//{
+	//	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%s"), *Actor->GetClass()->GetName()));
+	//	if (Actor->GetClass()->GetName() == TEXT("BP_RifleItem_C"))
+	//	{
+	//		Actor->Destroy();
+	//	}
+	//	if (Actor->GetClass()->GetName() == TEXT("BP_Soda_C"))
+	//	{
+	//		Actor->Destroy();
+	//	}
+	//}
+
 }

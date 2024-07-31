@@ -77,6 +77,7 @@ public:
 	UFUNCTION(Server, Reliable)
 	void SetCurrentWeapon_Server(const FString& NewWeapon);
 
+
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
 
@@ -109,6 +110,7 @@ private:
 
 	void InputReload(const FInputActionValue& InValue);
 
+	void InputPickup(const FInputActionValue& InValue);
 
 	//사격구현
 	void TryFire();
@@ -178,6 +180,7 @@ private:
 	UFUNCTION(NetMulticast, Unreliable)
 	void PlayReloadMontage_NetMulticast();
 	
+	void FindOverlappingItems();
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowprivateAccess))
 	TObjectPtr<USpringArmComponent> SpringArmComponent;

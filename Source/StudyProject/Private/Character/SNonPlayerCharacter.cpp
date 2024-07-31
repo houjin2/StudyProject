@@ -31,6 +31,7 @@ ASNonPlayerCharacter::ASNonPlayerCharacter()
 	WidgetComponent->SetWidgetSpace(EWidgetSpace::World);
 	WidgetComponent->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 
+	bReplicates = true;
 }
 
 void ASNonPlayerCharacter::BeginPlay()
