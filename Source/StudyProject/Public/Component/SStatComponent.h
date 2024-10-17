@@ -26,6 +26,7 @@ public:
 
 	float  GetCurrentHP() const { return CurrentHP; }
 
+	UFUNCTION(BlueprintCallable, Category = "Stats")
 	void SetCurrentHP(float InCurrentHP);
 
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const;
@@ -50,7 +51,7 @@ public:
 	float MaxHP;
 
 	//Transient : csv파일에 저장되거나 읽어오지 않음 InitializeComponent() 에서 Max값으로 초기화됨.(시리얼라이즈가 필요없는것들.) 대부분의 Current는 Transient.
-	UPROPERTY(Replicated, Transient, VisibleInstanceOnly, BlueprintReadOnly, Category = "USStatComponent", meta = (AllowprivateAccess))
+	UPROPERTY(Replicated, Transient, VisibleInstanceOnly, BlueprintReadWrite, Category = "USStatComponent", meta = (AllowprivateAccess))
 	float CurrentHP;
 
 		

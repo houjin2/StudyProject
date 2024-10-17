@@ -24,6 +24,8 @@
 #include "Engine/Engine.h"
 #include "Kismet/GameplayStatics.h"			//사격 동기화
 #include "Kismet/KismetSystemLibrary.h"		//사격 동기화
+#include "DrawDebugHelpers.h"
+
 
 ASPlayerCharacter::ASPlayerCharacter()
 {
@@ -54,6 +56,12 @@ ASPlayerCharacter::ASPlayerCharacter()
 	IsReloading = false;
 	Magazine = 30;
 	CurrentAmmo = Magazine;
+
+	static ConstructorHelpers::FClassFinder<AAGrenade> GrenadeBPClass(TEXT("'/Game/StudyProject/Item/BP_Grenade.BP_Grenade_C'"));
+	if (GrenadeBPClass.Succeeded())
+	{
+		GrenadeClass = GrenadeBPClass.Class;
+	}
 }
 
 void ASPlayerCharacter::BeginPlay()
@@ -263,6 +271,7 @@ void ASPlayerCharacter::SetMeshMaterial(const EPlayerTeam& InPlayerTeam)
 		TeamIdx = 1u;
 		break;
 	default:
+		TeamIdx = 1u;
 		break;
 	}
 
@@ -322,12 +331,18 @@ void ASPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, CurrentAimYaw);
 	DOREPLIFETIME(ThisClass, CurrentWeapon);
+	DOREPLIFETIME(ThisClass, CurrentAmmo);
 
 }
 
 void ASPlayerCharacter::SetCurrentWeapon_Server_Implementation(const FString& NewWeapon)
 {
 	CurrentWeapon = NewWeapon;
+}
+
+void ASPlayerCharacter::ItemUse_Server_Implementation()
+{
+	StatComponent->SetCurrentHP(StatComponent->GetCurrentHP() + 20.f);
 }
 
 void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -344,6 +359,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot01, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot01);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot02, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot02);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->QuickSlot03, ETriggerEvent::Started, this, &ThisClass::InputQuickSlot03);
+		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->GrenadeLaunchar, ETriggerEvent::Started, this, &ThisClass::GrenadeLauncher);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Attack, ETriggerEvent::Started, this, &ThisClass::InputAttack);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Menu, ETriggerEvent::Started, this, &ThisClass::InputMenu);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->IronSight, ETriggerEvent::Started, this, &ThisClass::StartIronSight);
@@ -541,10 +557,14 @@ void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
 	}
 	*/
 	// 이전 무기 탄약 저장
-	if (CurrentWeapon == "Shotgun")
-	{
-		ShotgunAmmo = CurrentAmmo;
-	}
+	//if (CurrentWeapon == "Shotgun")
+	//{
+	//	ShotgunAmmo = CurrentAmmo;
+	//}
+	//if (CurrentWeapon == "GrenadeLauncher")
+	//{
+	//	GrenadeLauncherAmmo = CurrentAmmo;
+	//}
 
 	CurrentWeapon = "Rifle";
 	CurrentAmmo = RifleAmmo;
@@ -560,10 +580,14 @@ void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
 void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 {
 	//이전 무기 탄약 저장
-	if (CurrentWeapon == "Rifle")
-	{
-		RifleAmmo = CurrentAmmo;
-	}
+	//if (CurrentWeapon == "Rifle")
+	//{
+	//	RifleAmmo = CurrentAmmo;
+	//}
+	//if (CurrentWeapon == "GrenadeLauncher")
+	//{
+	//	GrenadeLauncherAmmo = CurrentAmmo;
+	//}
 
 	CurrentWeapon = "Shotgun";
 	CurrentAmmo = ShotgunAmmo;
@@ -582,6 +606,30 @@ void ASPlayerCharacter::InputQuickSlot03(const FInputActionValue& InValue)
 	{
 		DestroyWeaponInstance_Server();
 	}
+}
+
+void ASPlayerCharacter::GrenadeLauncher(const FInputActionValue& InValue)
+{
+	//이전 무기 탄약 저장
+	//if (CurrentWeapon == "Rifle")
+	//{
+	//	RifleAmmo = CurrentAmmo;
+	//}
+
+	//if (CurrentWeapon == "Shotgun")
+	//{
+	//	ShotgunAmmo = CurrentAmmo;
+	//}
+
+	CurrentWeapon = "GrenadeLauncher";
+	CurrentAmmo = GrenadeLauncherAmmo;
+	Magazine = GrenadeLauncherMagazine;
+
+	if (!HasAuthority())
+	{
+		SetCurrentWeapon_Server(CurrentWeapon);
+	}
+	SpawnWeaponInstance3_Server();
 }
 
 void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
@@ -659,11 +707,20 @@ void ASPlayerCharacter::InputPickup(const FInputActionValue& InValue)
 	FindOverlappingItems();
 }
 
+/*
 void ASPlayerCharacter::TryFire()
 {
+	APlayerController* PlayerController = GetController<APlayerController>();
+
+	if (!IsValid(PlayerController) || !IsValid(WeaponInstance))
+	{
+		return;		//PlayerController or WeaponInstance가 없으면 중단.
+	}
+
 	if (CurrentAmmo > 0 && CurrentWeapon == "Rifle")
 	{
-		APlayerController* PlayerController = GetController<APlayerController>();
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurrentWeapon = %s"), *CurrentWeapon));
+		//APlayerController* PlayerController = GetController<APlayerController>();
 		if (IsValid(PlayerController) == true && IsValid(WeaponInstance) == true)
 		{
 #pragma region CalculateTargetTransform
@@ -765,7 +822,8 @@ void ASPlayerCharacter::TryFire()
 	}
 	if (CurrentAmmo > 0 && CurrentWeapon == "Shotgun")
 	{
-		APlayerController* PlayerController = GetController<APlayerController>();
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurrentWeapon = %s"), *CurrentWeapon));
+		//APlayerController* PlayerController = GetController<APlayerController>();
 		if (IsValid(PlayerController) && IsValid(WeaponInstance))
 		{
 #pragma region CalculateTargetTransform
@@ -862,9 +920,361 @@ void ASPlayerCharacter::TryFire()
 		--CurrentAmmo;
 		ShotgunAmmo = CurrentAmmo;
 	}
-	if(CurrentAmmo <= 0)
+
+	//GrenadeLauncher
+	if (HasAuthority())  // 서버에서만 실행
 	{
-		Reload();
+		if (CurrentAmmo > 0 && CurrentWeapon == "GrenadeLauncher")
+		{
+			//APlayerController* PlayerController = GetController<APlayerController>();
+			if (IsValid(PlayerController) && IsValid(WeaponInstance))
+			{
+				FVector WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("MuzzleFlash"));
+				FVector CameraLocation;
+				FRotator CameraRotation;
+
+				PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+				FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
+
+				// 그레네이드를 서버에서 스폰
+				if (GrenadeClass)
+				{
+					UWorld* World = GetWorld();
+					if (World)
+					{
+						AAGrenade* SpawnedGrenade = World->SpawnActor<AAGrenade>(
+							GrenadeClass,
+							WeaponMuzzleLocation,    // 스폰 위치 (무기 입구 위치)
+							CameraRotation           // 스폰 방향 (카메라의 방향)
+						);
+
+						if (SpawnedGrenade)
+						{
+							FVector LaunchDirection = AimDirectionFromCamera;
+							SpawnedGrenade->FireInDirection(LaunchDirection); // 그레네이드를 발사
+							SpawnedGrenade->SetOwner(this);                    // 소유자 설정
+						}
+					}
+				}
+
+				// 탄약 감소는 서버에서만 처리
+				--CurrentAmmo;
+				GrenadeLauncherAmmo = CurrentAmmo;
+
+				// Owning Client에서 몽타주 재생
+				UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+				if (IsValid(AnimInstance) && IsValid(WeaponInstance))
+				{
+					if (!AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleFireAnimMontage()))
+					{
+						AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
+					}
+				}
+
+				// Other Client에서도 재생하기 위해 Server RPC 호출
+				PlayAttackMontage_Server();
+
+				// 재장전 호출
+				if (CurrentAmmo <= 0)
+				{
+					Reload();
+				}
+			}
+		}
+	}
+	else
+	{
+		// 클라이언트에서 서버로 요청
+		TryFire_Server();
+	}
+
+	// 클라이언트에서 카메라 쉐이크 처리
+	if (IsValid(FireShake) && GetOwner() == UGameplayStatics::GetPlayerController(this, 0))
+	{
+		PlayerController->ClientStartCameraShake(FireShake);
+	}
+}
+*/
+
+void ASPlayerCharacter::TryFire()
+{
+	APlayerController* PlayerController = GetController<APlayerController>();
+
+	if (!IsValid(PlayerController) || !IsValid(WeaponInstance))
+	{
+		return;  // PlayerController나 WeaponInstance가 유효하지 않으면 실행 중단
+	}
+
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurrentWeapon = %s"), *CurrentWeapon));
+
+	if (HasAuthority())  // 서버에서만 실행
+	{
+		if (CurrentAmmo > 0)
+		{
+			// 무기에 따라 발사 처리
+			if (CurrentWeapon == "Rifle")
+			{
+				PerformRifleFire(PlayerController);
+			}
+			else if (CurrentWeapon == "Shotgun")
+			{
+				PerformShotgunFire(PlayerController);
+			}
+			else if (CurrentWeapon == "GrenadeLauncher")
+			{
+				PerformGrenadeLauncherFire(PlayerController);
+			}
+
+			// 탄약 감소
+			--CurrentAmmo;
+
+			// 각 무기별로 탄약 값 저장
+			if (CurrentWeapon == "Rifle")
+			{
+				RifleAmmo = CurrentAmmo;  // 라이플 탄약을 저장
+			}
+			else if (CurrentWeapon == "Shotgun")
+			{
+				ShotgunAmmo = CurrentAmmo;  // 샷건 탄약을 저장
+			}
+			else if (CurrentWeapon == "GrenadeLauncher")
+			{
+				GrenadeLauncherAmmo = CurrentAmmo;  // 그레네이드 런처 탄약을 저장
+			}
+
+			// 탄약이 없으면 재장전 호출
+			if (CurrentAmmo <= 0)
+			{
+				Reload();
+			}
+		}
+		else
+		{
+			UKismetSystemLibrary::PrintString(this, TEXT("No Ammo Left! Reloading..."));
+			Reload();  // 탄약이 없을 때 재장전 호출
+		}
+	}
+	else
+	{
+		// 클라이언트에서 서버로 발사 요청
+		TryFire_Server();
+	}
+
+	// 클라이언트에서 카메라 쉐이크 처리
+	if (IsValid(FireShake) && GetOwner() == UGameplayStatics::GetPlayerController(this, 0))
+	{
+		PlayerController->ClientStartCameraShake(FireShake);
+	}
+}
+
+void ASPlayerCharacter::TryFire_Server_Implementation()
+{
+	TryFire();  // 서버에서 발사 처리
+}
+
+void ASPlayerCharacter::PerformRifleFire(APlayerController* PlayerController)
+{
+#pragma region Rifle Fire Logic
+	// 타겟 위치 계산
+	FVector WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("MuzzleFlash"));
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+	FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
+	FVector FocalLocation = CameraLocation + (AimDirectionFromCamera * 400.f);
+	FVector FinalFocalLocation = FocalLocation + (((WeaponMuzzleLocation - FocalLocation) | AimDirectionFromCamera) * AimDirectionFromCamera);
+	FTransform TargetTransform = FTransform(CameraRotation, FinalFocalLocation);
+
+	// 라인 트레이싱
+	FVector BulletDirection = TargetTransform.GetUnitAxis(EAxis::X);
+	FVector StartLocation = TargetTransform.GetLocation();
+	FVector EndLocation = StartLocation + BulletDirection * WeaponInstance->GetMaxRange();
+
+	FHitResult HitResult;
+	FCollisionQueryParams TraceParams(NAME_None, false, this);
+	TraceParams.AddIgnoredActor(WeaponInstance);
+
+	bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
+
+	ApplyDamageAndDrawLine_Server(HitResult);
+
+	// Owning Client에서 애니메이션 재생
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (IsValid(AnimInstance) && IsValid(WeaponInstance))
+	{
+		if (!AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleFireAnimMontage()))
+		{
+			AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
+		}
+	}
+
+	// Other Client에서도 애니메이션 재생을 위한 Server RPC 호출
+	PlayAttackMontage_Server();
+#pragma endregion
+}
+
+void ASPlayerCharacter::PerformShotgunFire(APlayerController* PlayerController)
+{
+#pragma region Shotgun Fire Logic
+	FVector WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("MuzzleFlash"));
+	FVector CameraLocation;
+	FRotator CameraRotation;
+	PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+	FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
+	FTransform TargetTransform = FTransform(CameraRotation, AimDirectionFromCamera);
+
+	// 샷건 발사 - 펠릿 수, 스프레드 설정
+	int32 PelletCount = 10;
+	float SpreadAngle = 10.0f;
+
+	for (int32 i = 0; i < PelletCount; ++i)
+	{
+		FRotator RandomSpread = CameraRotation;
+		RandomSpread.Yaw += FMath::FRandRange(-SpreadAngle, SpreadAngle);
+		RandomSpread.Pitch += FMath::FRandRange(-SpreadAngle, SpreadAngle);
+
+		FVector PelletDirection = RandomSpread.Vector();
+		FVector StartLocation = WeaponMuzzleLocation;
+		FVector EndLocation = StartLocation + PelletDirection * WeaponInstance->GetMaxRange();
+
+		FHitResult HitResult;
+		FCollisionQueryParams TraceParams(NAME_None, false, this);
+		TraceParams.AddIgnoredActor(WeaponInstance);
+
+		bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
+		ApplyDamageAndDrawLine_Server(HitResult);
+	}
+
+	// Owning Client에서 애니메이션 재생
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (IsValid(AnimInstance) && IsValid(WeaponInstance))
+	{
+		if (!AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleFireAnimMontage()))
+		{
+			AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
+		}
+	}
+
+	// Other Client에서도 애니메이션 재생을 위한 Server RPC 호출
+	PlayAttackMontage_Server();
+#pragma endregion
+}
+
+void ASPlayerCharacter::PerformGrenadeLauncherFire(APlayerController* PlayerController)
+{
+	if (HasAuthority())  // 서버에서만 실행
+	{
+		// 캐릭터 위치 확인
+		FVector CharacterLocation = GetActorLocation();
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Character Location: %s"), *CharacterLocation.ToString()));
+		FVector WeaponMuzzleLocation;
+
+
+		// WeaponInstance 확인
+		if (!IsValid(WeaponInstance))
+		{
+			UKismetSystemLibrary::PrintString(this, TEXT("WeaponInstance is invalid!"));
+			return;
+		}
+		else
+		{
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("WeaponInstance is valid")));
+
+			// 무기 메쉬와 소켓 위치 확인
+			WeaponMuzzleLocation = WeaponInstance->GetMesh()->GetSocketLocation(TEXT("MuzzleFlash"));
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Weapon Muzzle Location: %s"), *WeaponMuzzleLocation.ToString()));
+
+			WeaponMuzzleLocation.Z += 100.f;
+
+			// 추가로 WeaponInstance가 올바르게 장착되었는지 확인
+			FAttachmentTransformRules AttachRules(EAttachmentRule::SnapToTarget, true);
+			WeaponInstance->AttachToComponent(GetMesh(), AttachRules, TEXT("WeaponSocket"));
+		}
+
+		// 카메라 위치 및 발사 방향 계산
+		FVector CameraLocation;
+		FRotator CameraRotation;
+		PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
+
+		FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
+
+		// GetWorld()가 유효한지 확인
+		if (!GetWorld())
+		{
+			UKismetSystemLibrary::PrintString(this, TEXT("GetWorld() is invalid!"));
+			return;
+		}
+
+
+		// 그레네이드 스폰
+		if (GrenadeClass)
+		{
+			UWorld* World = GetWorld();
+			AAGrenade* SpawnedGrenade = World->SpawnActor<AAGrenade>(
+				GrenadeClass,
+				WeaponMuzzleLocation,  // 총구 위치에서 스폰
+				CameraRotation         // 카메라 회전 방향으로 스폰
+			);
+
+			if (SpawnedGrenade)
+			{
+				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Grenade Spawned on Server")));
+				SpawnedGrenade->SetReplicates(true);
+				SpawnedGrenade->SetReplicateMovement(true);
+				SpawnedGrenade->FireInDirection(AimDirectionFromCamera);  // 발사 방향 설정
+				SpawnedGrenade->SetOwner(this);
+				FVector GrenadeLocation = SpawnedGrenade->GetActorLocation();
+				//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Grenade Location: %s"), *GrenadeLocation.ToString()));
+
+
+				FTimerHandle TimerHandle;
+				GetWorld()->GetTimerManager().SetTimer(TimerHandle, [this, SpawnedGrenade]() {
+					SpawnGrenade_NetMulticast(SpawnedGrenade);
+					}, 0.2f, false);  // 0.2초 후에 NetMulticast 호출
+			}
+		}
+	}
+
+	// Owning Client에서 애니메이션 재생
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (IsValid(AnimInstance) && IsValid(WeaponInstance))
+	{
+		if (!AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleFireAnimMontage()))
+		{
+			AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Grenade FireAnim")));
+
+		}
+	}
+
+	// Other Client에서도 애니메이션 재생을 위한 Server RPC 호출
+	PlayAttackMontage_Server();
+#pragma endregion
+}
+
+void ASPlayerCharacter::SpawnGrenade_NetMulticast_Implementation(AAGrenade* SpawnedGrenade)
+{
+	//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("NetMulticast function executed")));
+
+	if (SpawnedGrenade)
+	{
+		FVector ServerLocation = SpawnedGrenade->GetActorLocation();  // 서버에서의 그레네이드 위치
+
+		// **클라이언트에서 위치 강제 동기화**
+		if (!HasAuthority())  // 클라이언트에서만 실행
+		{
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Grenade Location on Server: %s"), *ServerLocation.ToString()));
+
+			// 서버 위치로 클라이언트에서 강제 동기화
+			SpawnedGrenade->SetActorLocation(ServerLocation);
+
+			//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Grenade Location on Client after sync: %s"), *SpawnedGrenade->GetActorLocation().ToString()));
+		}
+
+		//UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Grenade is valid on Client")));
 	}
 }
 
@@ -873,7 +1283,7 @@ void ASPlayerCharacter::Reload()
 
 	if (IsValid(WeaponInstance) == true && IsReloading == false)
 	{
-		if ((CurrentWeapon == "Rifle" && CurrentAmmo < RifleMagazine) || (CurrentWeapon == "Shotgun" && CurrentAmmo < ShotgunMagazine))
+		if ((CurrentWeapon == "Rifle" && CurrentAmmo < RifleMagazine) || (CurrentWeapon == "Shotgun" && CurrentAmmo < ShotgunMagazine) || (CurrentWeapon == "GrenadeLauncher" && CurrentAmmo < GrenadeLauncherMagazine))
 		{
 			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 			if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
@@ -977,7 +1387,26 @@ void ASPlayerCharacter::SpawnWeaponInstance2_Server_Implementation()
 			WeaponInstance = GetWorld()->SpawnActor<ASWeaponActor>(WeaponClass2, FVector::ZeroVector, FRotator::ZeroRotator);
 		}
 	}
+	
 }
+
+void ASPlayerCharacter::SpawnWeaponInstance3_Server_Implementation()
+{
+	FName WeaponSocket(TEXT("WeaponSocket"));
+	if (IsValid(WeaponInstance) == true)
+	{
+		WeaponInstance->Destroy();
+		WeaponInstance = nullptr;
+	}
+	if (GetMesh()->DoesSocketExist(WeaponSocket) == true && IsValid(WeaponInstance) == false)
+	{
+		if (IsValid(WeaponClass3))
+		{
+			WeaponInstance = GetWorld()->SpawnActor<ASWeaponActor>(WeaponClass3, FVector::ZeroVector, FRotator::ZeroRotator);
+		}
+	}
+}
+
 
 void ASPlayerCharacter::DestroyWeaponInstance_Server_Implementation()
 {
@@ -1044,6 +1473,7 @@ void ASPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult 
 			{
 				HittedCharacter->TakeDamage(10.f, DamageEvent, GetController(), this);
 			}
+			
 		}
 		if (CurrentWeapon == "Shotgun")
 		{
@@ -1057,6 +1487,25 @@ void ASPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult 
 			{
 				HittedCharacter->TakeDamage(5.f, DamageEvent, GetController(), this);
 			}
+		}
+		if (CurrentWeapon == "Grenade")
+		{
+			UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("GrenadeApplyDamage.")));
+
+			// Grenade 폭발 위치와 타겟의 위치 사이 거리 계산
+			FVector ExplosionLocation = GetActorLocation(); // 그레네이드가 위치한 곳을 사용
+			float Distance = FVector::Dist(ExplosionLocation, HitResult.GetActor()->GetActorLocation());
+
+			// 거리별로 데미지 설정
+			float MaxDamage = 100.f;
+			float MinDamage = 20.f;
+			float MaxDistance = 500.f; // 최대 데미지가 적용되는 거리
+			float MinDistance = 1000.f; // 최소 데미지가 적용되는 거리
+
+			float DamageToApply = FMath::GetMappedRangeValueClamped(FVector2D(MaxDistance, MinDistance), FVector2D(MaxDamage, MinDamage), Distance);
+
+			// 계산된 데미지 적용
+			HittedCharacter->TakeDamage(DamageToApply, DamageEvent, GetController(), this);
 		}
 	}
 
@@ -1081,8 +1530,8 @@ void ASPlayerCharacter::PlayAttackMontage_Server_Implementation()
 
 void ASPlayerCharacter::PlayAttackMontage_NetMulticast_Implementation()
 {
-	if (HasAuthority() == false && GetOwner() != UGameplayStatics::GetPlayerController(this, 0))
-	{
+	//if (HasAuthority() == false && GetOwner() != UGameplayStatics::GetPlayerController(this, 0))
+	//{
 		UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 		if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
 		{
@@ -1091,7 +1540,7 @@ void ASPlayerCharacter::PlayAttackMontage_NetMulticast_Implementation()
 				AnimInstance->Montage_Play(WeaponInstance->GetRifleFireAnimMontage());
 			}
 		}
-	}
+	//}
 }
 
 void ASPlayerCharacter::UpdateInputValue_Server_Implementation(const float& InForwardInputValue, const float& InRightInputValue)

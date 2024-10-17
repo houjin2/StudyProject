@@ -39,6 +39,9 @@ public:
 	TObjectPtr<UInputAction> QuickSlot03;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> GrenadeLaunchar;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInputAction> Attack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

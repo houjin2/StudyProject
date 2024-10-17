@@ -6,6 +6,7 @@
 #include "Character/SCharacter.h"
 #include "InputActionValue.h"
 #include "Item/SWeaponActor.h"
+#include "Item/AGrenade.h"
 #include "Game/SPlayerState.h"
 #include "SPlayerCharacter.generated.h"
 
@@ -77,6 +78,21 @@ public:
 	UFUNCTION(Server, Reliable)
 	void SetCurrentWeapon_Server(const FString& NewWeapon);
 
+	UFUNCTION(BlueprintCallable, Server, Reliable)
+	void ItemUse_Server();
+
+	UFUNCTION(Server, Reliable)
+	void TryFire_Server();
+
+	// 각 무기별 발사 처리 함수
+	void PerformRifleFire(APlayerController* PlayerController);
+
+	void PerformShotgunFire(APlayerController* PlayerController);
+
+	void PerformGrenadeLauncherFire(APlayerController* PlayerController);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void SpawnGrenade_NetMulticast(AAGrenade* SpawnedGrenade);
 
 protected:
 	virtual void SetupPlayerInputComponent(UInputComponent* PlayerInputComponent) override;
@@ -99,6 +115,8 @@ private:
 	void InputQuickSlot02(const FInputActionValue& InValue);
 
 	void InputQuickSlot03(const FInputActionValue& InValue);
+
+	void GrenadeLauncher(const FInputActionValue& InValue);
 
 	void InputAttack(const FInputActionValue& InValue);
 
@@ -142,6 +160,9 @@ private:
 
 	UFUNCTION(Server, Reliable)
 	void SpawnWeaponInstance2_Server();
+
+	UFUNCTION(Server, Reliable)
+	void SpawnWeaponInstance3_Server();
 
 	UFUNCTION(Server, Reliable)
 	void DestroyWeaponInstance_Server();
@@ -292,7 +313,11 @@ protected:
 
 	int32 ShotgunMagazine = 8;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
+	int32 GrenadeLauncherAmmo = 6;
+
+	int32 GrenadeLauncherMagazine = 6;
+
+	UPROPERTY(Replicated,VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
 	int32 CurrentAmmo;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
@@ -303,4 +328,7 @@ protected:
 
 	UPROPERTY(Replicated)
 	FString CurrentWeapon;
+
+	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Weapon")
+	TSubclassOf<AAGrenade> GrenadeClass;
 };

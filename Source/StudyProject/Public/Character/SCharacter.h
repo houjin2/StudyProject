@@ -66,6 +66,9 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TSubclassOf<ASWeaponActor> WeaponClass2;
 
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
+	TSubclassOf<ASWeaponActor> WeaponClass3;
+
 	UPROPERTY(ReplicatedUsing = OnRep_WeaponInstance, VisibleAnywhere, BlueprintReadOnly, meta = (AllowPrivateAccess))
 	TObjectPtr<ASWeaponActor> WeaponInstance;
 
@@ -87,6 +90,6 @@ protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowprivateAccess))
 	float MeleeAttackRadius = 50.f;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, meta = (AllowprivateAccess))
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, meta = (AllowprivateAccess))
 	TObjectPtr<USStatComponent> StatComponent;
 };

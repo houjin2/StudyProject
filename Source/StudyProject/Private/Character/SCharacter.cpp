@@ -17,7 +17,7 @@
 #include "Game/SGameState.h"
 #include "Character/SPlayerCharacter.h"
 
-int32 ASCharacter::ShowAttackDebug = 0;
+int32 ASCharacter::ShowAttackDebug = 1;
 
 FAutoConsoleVariableRef CVarShowAttackDebug(
 	TEXT("StudyProject.ShowAttackDebug"),
@@ -88,6 +88,8 @@ float ASCharacter::TakeDamage(float DamageAmount, FDamageEvent const& DamageEven
 	return FinalDamageAmount;
 }
 
+
+
 void ASCharacter::EndPlay(const EEndPlayReason::Type EndPlayReason)
 {
 	if (StatComponent->OnOutOfCurrentHPDelegate.IsAlreadyBound(this, &ThisClass::OnCharacterDeath))
@@ -104,6 +106,8 @@ void ASCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifet
 
 	DOREPLIFETIME(ThisClass, WeaponInstance);
 }
+
+
 
 void ASCharacter::OnMeleeAttackMontageEnded(UAnimMontage* InMontage, bool bInterruped)
 {

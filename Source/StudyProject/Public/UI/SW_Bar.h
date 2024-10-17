@@ -26,9 +26,9 @@ protected:
 	virtual void NativeConstruct() override;
 
 protected:
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "USW_Bar")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "USW_Bar")
 	TObjectPtr<UProgressBar> Bar;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "USW_Bar")
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "USW_Bar")
 	float MaxFigure;
 };
