@@ -1201,10 +1201,12 @@ void ASPlayerCharacter::PerformShotgunFire(APlayerController* PlayerController)
 	PlayerController->GetPlayerViewPoint(CameraLocation, CameraRotation);
 
 	FVector AimDirectionFromCamera = CameraRotation.Vector().GetSafeNormal();
-	FTransform TargetTransform = FTransform(CameraRotation, AimDirectionFromCamera);
+	FVector FocalLocation = CameraLocation + (AimDirectionFromCamera * 400.f);
+	FVector FinalFocalLocation = FocalLocation + (((WeaponMuzzleLocation - FocalLocation) | AimDirectionFromCamera) * AimDirectionFromCamera);
+	FTransform TargetTransform = FTransform(CameraRotation, FinalFocalLocation);
 
 	// 샷건 발사 - 펠릿 수, 스프레드 설정
-	int32 PelletCount = 10;
+	int32 PelletCount = 20;
 	float SpreadAngle = 10.0f;
 
 	for (int32 i = 0; i < PelletCount; ++i)
@@ -1221,16 +1223,21 @@ void ASPlayerCharacter::PerformShotgunFire(APlayerController* PlayerController)
 		FCollisionQueryParams TraceParams(NAME_None, false, this);
 		TraceParams.AddIgnoredActor(WeaponInstance);
 
-		if (HitResult.GetActor())
+
+
+		bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Pawn, TraceParams);
+
+		if (IsCollided)
 		{
-			UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitResult.GetActor()->GetName());
+			// 충돌한 경우, 시작점에서 충돌 지점까지 디버그 라인을 그립니다.
+			DrawDebugLine(GetWorld(), StartLocation, HitResult.ImpactPoint, FColor::Red, false, 5.f, 0, 1.f);
 		}
 		else
 		{
-			UE_LOG(LogTemp, Warning, TEXT("No Actor hit"));
+			// 충돌하지 않았을 때 끝까지 그리기
+			DrawDebugLine(GetWorld(), StartLocation, EndLocation, FColor::Green, false, 5.f, 0, 1.f);
 		}
 
-		bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
 		ApplyDamageAndDrawLine_Server(HitResult);
 	}
 
