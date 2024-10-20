@@ -21,6 +21,6 @@
 
 ![Inventory Example](./Giffile/Inventoryout.gif)
 
-![GrenadeLauncher Example](.Giffile/GrenadeLauncher.gif)
+![GrenadeLauncher Example](./Giffile/GrenadeLauncher.gif)
 
 ![Missile Example](./Giffile/Missile.gif)
