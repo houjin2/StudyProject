@@ -14,3 +14,7 @@
 ![Missile Example](./Giffile/Missile.gif)
 
 ![Rifle Example](./Giffile/Rifle.gif)
+
+![Inventory Example](./Giffile/Inventoryin.gif)
+
+![Inventory Example](./Giffile/Inventoryout.gif)
