@@ -11,10 +11,16 @@
 - **Missile 충돌 처리 및 유도기능 구현**
   Missile 발사 전 Target을 지정하여 Actor가 움직이더라도 따라가는 유도기능 구현.
 
-![Missile Example](./Giffile/Missile.gif)
+
 
 ![Rifle Example](./Giffile/Rifle.gif)
+
+![Shotgun Example](./Giffile/Shotgun.gif)
 
 ![Inventory Example](./Giffile/Inventoryin.gif)
 
 ![Inventory Example](./Giffile/Inventoryout.gif)
+
+
+
+![Missile Example](./Giffile/Missile.gif)
