@@ -1081,34 +1081,11 @@ void ASPlayerCharacter::TryFire()
 	{
 		if (CurrentAmmo > 0)
 		{
-			// 무기에 따라 발사 처리
-			if (CurrentWeapon == "Rifle")
-			{
-				PerformRifleFire(PlayerController);
-			}
-			else if (CurrentWeapon == "Shotgun")
-			{
-				PerformShotgunFire(PlayerController);
-			}
-			else if (CurrentWeapon == "GrenadeLauncher")
+			// GrenadeLauncher는 서버에서만 실행
+			if (CurrentWeapon == "GrenadeLauncher")
 			{
 				PerformGrenadeLauncherFire(PlayerController);
-			}
-
-			// 탄약 감소
-			--CurrentAmmo;
-
-			// 각 무기별로 탄약 값 저장
-			if (CurrentWeapon == "Rifle")
-			{
-				RifleAmmo = CurrentAmmo;  // 라이플 탄약을 저장
-			}
-			else if (CurrentWeapon == "Shotgun")
-			{
-				ShotgunAmmo = CurrentAmmo;  // 샷건 탄약을 저장
-			}
-			else if (CurrentWeapon == "GrenadeLauncher")
-			{
+				--CurrentAmmo;
 				GrenadeLauncherAmmo = CurrentAmmo;  // 그레네이드 런처 탄약을 저장
 			}
 		}
@@ -1117,11 +1094,29 @@ void ASPlayerCharacter::TryFire()
 			UKismetSystemLibrary::PrintString(this, TEXT("No Ammo Left! Reloading..."));
 		}
 	}
-	else
+	else  // 클라이언트에서 실행
 	{
-		if (CurrentAmmo > 0) {
-			// 클라이언트에서 서버로 발사 요청
-			TryFire_Server();
+		if (CurrentAmmo > 0)
+		{
+			// Rifle, Shotgun은 클라이언트에서 실행 가능
+			if (CurrentWeapon == "Rifle")
+			{
+				PerformRifleFire(PlayerController);
+				--CurrentAmmo;
+				RifleAmmo = CurrentAmmo;  // 라이플 탄약을 저장
+			}
+			else if (CurrentWeapon == "Shotgun")
+			{
+				PerformShotgunFire(PlayerController);
+				--CurrentAmmo;
+				ShotgunAmmo = CurrentAmmo;  // 샷건 탄약을 저장
+			}
+
+			// GrenadeLauncher는 서버에서 발사 요청
+			if (CurrentWeapon == "GrenadeLauncher")
+			{
+				TryFire_Server();  // 서버로 발사 요청
+			}
 		}
 		else
 		{
