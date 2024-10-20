@@ -1115,13 +1115,18 @@ void ASPlayerCharacter::TryFire()
 		else
 		{
 			UKismetSystemLibrary::PrintString(this, TEXT("No Ammo Left! Reloading..."));
-			Reload();  // 탄약이 없을 때 재장전 호출
 		}
 	}
 	else
 	{
-		// 클라이언트에서 서버로 발사 요청
-		TryFire_Server();
+		if (CurrentAmmo > 0) {
+			// 클라이언트에서 서버로 발사 요청
+			TryFire_Server();
+		}
+		else
+		{
+			Reload();  // 탄약이 없을 때 재장전 호출
+		}
 	}
 
 	// 클라이언트에서 카메라 쉐이크 처리
@@ -1159,7 +1164,16 @@ void ASPlayerCharacter::PerformRifleFire(APlayerController* PlayerController)
 	FCollisionQueryParams TraceParams(NAME_None, false, this);
 	TraceParams.AddIgnoredActor(WeaponInstance);
 
-	bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
+	if (HitResult.GetActor())
+	{
+		UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitResult.GetActor()->GetName());
+	}
+	else
+	{
+		UE_LOG(LogTemp, Warning, TEXT("No Actor hit"));
+	}
+
+	bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_Visibility, TraceParams);
 
 	ApplyDamageAndDrawLine_Server(HitResult);
 
@@ -1206,6 +1220,15 @@ void ASPlayerCharacter::PerformShotgunFire(APlayerController* PlayerController)
 		FHitResult HitResult;
 		FCollisionQueryParams TraceParams(NAME_None, false, this);
 		TraceParams.AddIgnoredActor(WeaponInstance);
+
+		if (HitResult.GetActor())
+		{
+			UE_LOG(LogTemp, Warning, TEXT("Hit Actor: %s"), *HitResult.GetActor()->GetName());
+		}
+		else
+		{
+			UE_LOG(LogTemp, Warning, TEXT("No Actor hit"));
+		}
 
 		bool IsCollided = GetWorld()->LineTraceSingleByChannel(HitResult, StartLocation, EndLocation, ECC_GameTraceChannel2, TraceParams);
 		ApplyDamageAndDrawLine_Server(HitResult);
@@ -1540,14 +1563,27 @@ void ASPlayerCharacter::OnRep_WeaponInstance()
 
 void ASPlayerCharacter::ApplyDamageAndDrawLine_Server_Implementation(FHitResult HitResult)
 {
+
+	if (HitResult.GetActor() != nullptr)
+	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("Hit Actor: %s"), *HitResult.GetActor()->GetName()));
+	}
+	else
+	{
+		UKismetSystemLibrary::PrintString(this, TEXT("No Actor hit"));
+		return;  // HitResult가 없을 경우 함수 종료
+	}
+
 	ASCharacter* HittedCharacter = Cast<ASCharacter>(HitResult.GetActor());
+	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurrentWeapon is %s!"), *CurrentWeapon));
+
 	if (IsValid(HittedCharacter) == true)
 	{
 		FDamageEvent DamageEvent;
 
 		FString BoneNameString = HitResult.BoneName.ToString();
 
-		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurrentWeapon : %s"), *CurrentWeapon));
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("CurrentWeapon is %s!!!"), *CurrentWeapon));
 
 		if (CurrentWeapon == "Rifle") 
 		{
@@ -1689,21 +1725,21 @@ void ASPlayerCharacter::PlayReloadMontage_NetMulticast_Implementation()
 
 void ASPlayerCharacter::FindOverlappingItems()
 {
-	//TArray<AActor*> OverlappingActors;
-	//GetOverlappingActors(OverlappingActors, TSubclassOf<AActor>());
-	//
-	//for (AActor* Actor : OverlappingActors)
-	//{
-	//	UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%s"), *Actor->GetClass()->GetName()));
-	//	if (Actor->GetClass()->GetName() == TEXT("BP_RifleItem_C"))
-	//	{
-	//		Actor->Destroy();
-	//	}
-	//	if (Actor->GetClass()->GetName() == TEXT("BP_Soda_C"))
-	//	{
-	//		Actor->Destroy();
-	//	}
-	//}
+	TArray<AActor*> OverlappingActors;
+	GetOverlappingActors(OverlappingActors, TSubclassOf<AActor>());
+	
+	for (AActor* Actor : OverlappingActors)
+	{
+		UKismetSystemLibrary::PrintString(this, FString::Printf(TEXT("%s"), *Actor->GetClass()->GetName()));
+		if (Actor->GetClass()->GetName() == TEXT("BP_RifleItem_C"))
+		{
+			Actor->Destroy();
+		}
+		if (Actor->GetClass()->GetName() == TEXT("BP_Soda_C"))
+		{
+			Actor->Destroy();
+		}
+	}
 
 }
 
