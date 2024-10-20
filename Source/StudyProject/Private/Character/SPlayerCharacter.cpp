@@ -25,6 +25,8 @@
 #include "Kismet/GameplayStatics.h"			//사격 동기화
 #include "Kismet/KismetSystemLibrary.h"		//사격 동기화
 #include "DrawDebugHelpers.h"
+#include "GameFramework/ProjectileMovementComponent.h"
+
 
 
 ASPlayerCharacter::ASPlayerCharacter()
@@ -62,6 +64,7 @@ ASPlayerCharacter::ASPlayerCharacter()
 	{
 		GrenadeClass = GrenadeBPClass.Class;
 	}
+
 }
 
 void ASPlayerCharacter::BeginPlay()
@@ -330,6 +333,7 @@ void ASPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	DOREPLIFETIME(ThisClass, RightInputValue);
 	DOREPLIFETIME(ThisClass, CurrentAimPitch);
 	DOREPLIFETIME(ThisClass, CurrentAimYaw);
+	DOREPLIFETIME(ThisClass, Magazine);
 	DOREPLIFETIME(ThisClass, CurrentWeapon);
 	DOREPLIFETIME(ThisClass, CurrentAmmo);
 
@@ -337,7 +341,44 @@ void ASPlayerCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 
 void ASPlayerCharacter::SetCurrentWeapon_Server_Implementation(const FString& NewWeapon)
 {
-	CurrentWeapon = NewWeapon;
+	if (NewWeapon == "Rifle")
+	{
+		// 이전 무기의 탄약을 저장
+		if (CurrentWeapon == "Shotgun")
+		{
+			ShotgunAmmo = CurrentAmmo;
+		}
+		else if (CurrentWeapon == "GrenadeLauncher")
+		{
+			GrenadeLauncherAmmo = CurrentAmmo;
+		}
+
+		// 라이플로 전환
+		CurrentWeapon = "Rifle";
+		CurrentAmmo = RifleAmmo;
+		Magazine = RifleMagazine;
+		SpawnWeaponInstance1_Server();
+
+	}
+	else if (NewWeapon == "Shotgun")
+	{
+		// 샷건으로 전환
+		CurrentWeapon = "Shotgun";
+		CurrentAmmo = ShotgunAmmo;
+		Magazine = ShotgunMagazine;
+		SpawnWeaponInstance2_Server();
+
+	}
+	else if (NewWeapon == "GrenadeLauncher")
+	{
+		// 그레네이드 런처로 전환
+		CurrentWeapon = "GrenadeLauncher";
+		CurrentAmmo = GrenadeLauncherAmmo;
+		Magazine = GrenadeLauncherMagazine;
+		SpawnWeaponInstance3_Server();
+
+	}
+
 }
 
 void ASPlayerCharacter::ItemUse_Server_Implementation()
@@ -372,7 +413,7 @@ void ASPlayerCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputCo
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->LookSpeedDown, ETriggerEvent::Started, this, &ThisClass::InputLookSpeedDown);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Reload, ETriggerEvent::Started, this, &ThisClass::InputReload);
 		EnhancedInputComponent->BindAction(PlayerCharacterInputConfig->Pickup, ETriggerEvent::Started, this, &ThisClass::InputPickup);
-
+	
 	}
 }
 
@@ -380,22 +421,33 @@ void ASPlayerCharacter::OnCheckReloadEnd()
 {
 	if (CurrentWeapon == "Rifle")
 	{
-		RifleAmmo = RifleMagazine;
+		RifleAmmo = RifleMagazine;  // 라이플 탄약 갱신
 	}
 	else if (CurrentWeapon == "Shotgun")
 	{
-		ShotgunAmmo = ShotgunMagazine;
+		ShotgunAmmo = ShotgunMagazine;  // 샷건 탄약 갱신
+	}
+	else if (CurrentWeapon == "GrenadeLauncher")
+	{
+		GrenadeLauncherAmmo = GrenadeLauncherMagazine;  // 그레네이드 런처 탄약 갱신
 	}
 
-	CurrentAmmo = (CurrentWeapon == "Rifle") ? RifleMagazine : ShotgunMagazine;
-	IsReloading = false;
+	CurrentAmmo = (CurrentWeapon == "Rifle") ? RifleMagazine :
+		(CurrentWeapon == "Shotgun") ? ShotgunMagazine :
+		GrenadeLauncherMagazine;  // 현재 무기의 탄약 갱신
+
+	IsReloading = false;  // 재장전 완료 상태로 설정
 
 	USAnimInstance* AnimInstance = Cast<USAnimInstance>(GetMesh()->GetAnimInstance());
 
-	if (true == AnimInstance->OnCheckHit.IsAlreadyBound(this, &ThisClass::OnCheckReloadEnd))
+	// 재장전 끝날 때의 이벤트 연결 해제
+	if (AnimInstance && AnimInstance->OnCheckHit.IsAlreadyBound(this, &ThisClass::OnCheckReloadEnd))
 	{
 		AnimInstance->OnCheckHit.RemoveDynamic(this, &ThisClass::OnCheckReloadEnd);
 	}
+
+	// 탄약 갱신을 서버와 클라이언트 간에 동기화
+	SyncAmmo_Server(CurrentAmmo);
 }
 
 void ASPlayerCharacter::OnCheckSpawnWeapon()
@@ -557,47 +609,59 @@ void ASPlayerCharacter::InputQuickSlot01(const FInputActionValue& InValue)
 	}
 	*/
 	// 이전 무기 탄약 저장
-	//if (CurrentWeapon == "Shotgun")
-	//{
-	//	ShotgunAmmo = CurrentAmmo;
-	//}
-	//if (CurrentWeapon == "GrenadeLauncher")
-	//{
-	//	GrenadeLauncherAmmo = CurrentAmmo;
-	//}
-
-	CurrentWeapon = "Rifle";
-	CurrentAmmo = RifleAmmo;
-	Magazine = RifleMagazine;
-
-	if (!HasAuthority())
+	if (HasAuthority())
 	{
-		SetCurrentWeapon_Server(CurrentWeapon);
+		// 이전 무기의 탄약을 저장
+		if (CurrentWeapon == "Shotgun")
+		{
+			ShotgunAmmo = CurrentAmmo;
+		}
+		else if (CurrentWeapon == "GrenadeLauncher")
+		{
+			GrenadeLauncherAmmo = CurrentAmmo;
+		}
+
+		// 라이플로 무기 전환
+		CurrentWeapon = "Rifle";
+		CurrentAmmo = RifleAmmo;
+		Magazine = RifleMagazine;
+
+		SpawnWeaponInstance1_Server();
 	}
-	SpawnWeaponInstance1_Server();
+	else
+	{
+		// 클라이언트가 서버에 요청
+		SetCurrentWeapon_Server("Rifle");
+	}
 }
 
 void ASPlayerCharacter::InputQuickSlot02(const FInputActionValue& InValue)
 {
 	//이전 무기 탄약 저장
-	//if (CurrentWeapon == "Rifle")
-	//{
-	//	RifleAmmo = CurrentAmmo;
-	//}
-	//if (CurrentWeapon == "GrenadeLauncher")
-	//{
-	//	GrenadeLauncherAmmo = CurrentAmmo;
-	//}
-
-	CurrentWeapon = "Shotgun";
-	CurrentAmmo = ShotgunAmmo;
-	Magazine = ShotgunMagazine;
-
-	if (!HasAuthority())
+	if (HasAuthority())
 	{
-		SetCurrentWeapon_Server(CurrentWeapon);
+		// 이전 무기의 탄약을 저장
+		if (CurrentWeapon == "Rifle")
+		{
+			RifleAmmo = CurrentAmmo;
+		}
+		else if (CurrentWeapon == "GrenadeLauncher")
+		{
+			GrenadeLauncherAmmo = CurrentAmmo;
+		}
+
+		// 라이플로 무기 전환
+		CurrentWeapon = "Shotgun";
+		CurrentAmmo = ShotgunAmmo;
+		Magazine = ShotgunMagazine;
+
+		SpawnWeaponInstance2_Server();
 	}
-	SpawnWeaponInstance2_Server();
+	else
+	{
+		// 클라이언트가 서버에 요청
+		SetCurrentWeapon_Server("Shotgun");
+	}
 }
 
 void ASPlayerCharacter::InputQuickSlot03(const FInputActionValue& InValue)
@@ -611,25 +675,30 @@ void ASPlayerCharacter::InputQuickSlot03(const FInputActionValue& InValue)
 void ASPlayerCharacter::GrenadeLauncher(const FInputActionValue& InValue)
 {
 	//이전 무기 탄약 저장
-	//if (CurrentWeapon == "Rifle")
-	//{
-	//	RifleAmmo = CurrentAmmo;
-	//}
-
-	//if (CurrentWeapon == "Shotgun")
-	//{
-	//	ShotgunAmmo = CurrentAmmo;
-	//}
-
-	CurrentWeapon = "GrenadeLauncher";
-	CurrentAmmo = GrenadeLauncherAmmo;
-	Magazine = GrenadeLauncherMagazine;
-
-	if (!HasAuthority())
+	if (HasAuthority())
 	{
-		SetCurrentWeapon_Server(CurrentWeapon);
+		// 이전 무기의 탄약을 저장
+		if (CurrentWeapon == "Rifle")
+		{
+			RifleAmmo = CurrentAmmo;
+		}
+		else if (CurrentWeapon == "Shotgun")
+		{
+			ShotgunAmmo = CurrentAmmo;
+		}
+
+		// 라이플로 무기 전환
+		CurrentWeapon = "GrenadeLauncher";
+		CurrentAmmo = GrenadeLauncherAmmo;
+		Magazine = GrenadeLauncherMagazine;
+
+		SpawnWeaponInstance3_Server();
 	}
-	SpawnWeaponInstance3_Server();
+	else
+	{
+		// 클라이언트가 서버에 요청
+		SetCurrentWeapon_Server("GrenadeLauncher");
+	}
 }
 
 void ASPlayerCharacter::InputAttack(const FInputActionValue& InValue)
@@ -1042,12 +1111,6 @@ void ASPlayerCharacter::TryFire()
 			{
 				GrenadeLauncherAmmo = CurrentAmmo;  // 그레네이드 런처 탄약을 저장
 			}
-
-			// 탄약이 없으면 재장전 호출
-			if (CurrentAmmo <= 0)
-			{
-				Reload();
-			}
 		}
 		else
 		{
@@ -1280,20 +1343,45 @@ void ASPlayerCharacter::SpawnGrenade_NetMulticast_Implementation(AAGrenade* Spaw
 
 void ASPlayerCharacter::Reload()
 {
-
-	if (IsValid(WeaponInstance) == true && IsReloading == false)
+	// 무기 인스턴스가 유효하고 재장전 중이 아닌 경우에만 실행
+	if (IsValid(WeaponInstance) && !IsReloading)
 	{
-		if ((CurrentWeapon == "Rifle" && CurrentAmmo < RifleMagazine) || (CurrentWeapon == "Shotgun" && CurrentAmmo < ShotgunMagazine) || (CurrentWeapon == "GrenadeLauncher" && CurrentAmmo < GrenadeLauncherMagazine))
+		// 각 무기별로 재장전이 필요한 경우 처리
+		if ((CurrentWeapon == "Rifle" && CurrentAmmo < RifleMagazine) ||
+			(CurrentWeapon == "Shotgun" && CurrentAmmo < ShotgunMagazine) ||
+			(CurrentWeapon == "GrenadeLauncher" && CurrentAmmo < GrenadeLauncherMagazine))
 		{
 			UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-			if (IsValid(AnimInstance) == true && IsValid(WeaponInstance) == true)
+			if (IsValid(AnimInstance) && IsValid(WeaponInstance))
 			{
-				if (AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleReloadAnimMontage()) == false)
+				// 무기 종류에 맞는 재장전 애니메이션 실행
+				if (CurrentWeapon == "Rifle")
 				{
-					AnimInstance->Montage_Play(WeaponInstance->GetRifleReloadAnimMontage());
+					if (!AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleReloadAnimMontage()))
+					{
+						AnimInstance->Montage_Play(WeaponInstance->GetRifleReloadAnimMontage());
+					}
+				}
+				else if (CurrentWeapon == "Shotgun")
+				{
+					if (!AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleReloadAnimMontage()))
+					{
+						AnimInstance->Montage_Play(WeaponInstance->GetRifleReloadAnimMontage());
+					}
+				}
+				else if (CurrentWeapon == "GrenadeLauncher")
+				{
+					if (!AnimInstance->Montage_IsPlaying(WeaponInstance->GetRifleReloadAnimMontage()))
+					{
+						AnimInstance->Montage_Play(WeaponInstance->GetRifleReloadAnimMontage());
+					}
 				}
 			}
+
+			// 서버에서 재장전 몽타주 실행 요청
 			PlayReloadMontage_Server();
+
+			// 재장전 중 상태 설정
 			IsReloading = true;
 		}
 	}
@@ -1618,3 +1706,15 @@ void ASPlayerCharacter::FindOverlappingItems()
 	//}
 
 }
+
+void ASPlayerCharacter::SyncAmmo_Server_Implementation(int32 NewAmmo)
+{
+	// 서버에서 클라이언트로 탄약 값 동기화
+	SyncAmmo(NewAmmo);
+}
+
+void ASPlayerCharacter::SyncAmmo_Implementation(int32 NewAmmo)
+{
+	CurrentAmmo = NewAmmo;  // 클라이언트에서 탄약 값 업데이트
+}
+

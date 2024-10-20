@@ -42,6 +42,12 @@ public:
 	TObjectPtr<UInputAction> GrenadeLaunchar;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> MissileFire;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
+	TObjectPtr<UInputAction> SetTarget;
+
+	UPROPERTY(EditAnywhere, BlueprintReadOnly)
 	TObjectPtr<UInputAction> Attack;
 
 	UPROPERTY(EditAnywhere, BlueprintReadOnly)

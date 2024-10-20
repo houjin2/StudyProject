@@ -202,6 +202,12 @@ private:
 	void PlayReloadMontage_NetMulticast();
 	
 	void FindOverlappingItems();
+
+	UFUNCTION(Server, Reliable)
+	void SyncAmmo_Server(int32 NewAmmo);
+
+	UFUNCTION(NetMulticast, Reliable)
+	void SyncAmmo(int32 NewAmmo);
 protected:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, meta = (AllowprivateAccess))
 	TObjectPtr<USpringArmComponent> SpringArmComponent;
@@ -320,7 +326,7 @@ protected:
 	UPROPERTY(Replicated,VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
 	int32 CurrentAmmo;
 
-	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
+	UPROPERTY(Replicated, VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
 	int32 Magazine;
 
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "ASPlayerStat", meta = (AllowprivateAccess))
@@ -331,4 +337,6 @@ protected:
 
 	UPROPERTY(Replicated, EditDefaultsOnly, Category = "Weapon")
 	TSubclassOf<AAGrenade> GrenadeClass;
+
+
 };
